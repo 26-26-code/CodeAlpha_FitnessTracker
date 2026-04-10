@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fitness Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --surface: #111118; --card: #16161f;
+      --border: #22222e; --text: #f0f0f8; --muted: #5a5a72;
+      --green: #39d98a; --green-dim: rgba(57,217,138,0.12);
+      --orange: #ff7043; --orange-dim: rgba(255,112,67,0.12);
+      --blue: #448aff; --blue-dim: rgba(68,138,255,0.12);
+      --purple: #b388ff; --purple-dim: rgba(179,136,255,0.12);
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; min-height: 100vh; padding: 2rem 1rem 5rem; }
+    body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 60% 40% at 80% 10%, rgba(57,217,138,0.04) 0%, transparent 60%); pointer-events: none; }
+    .app { max-width: 720px; margin: 0 auto; }
+
+    /* Header */
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; animation: fadeDown 0.6s ease both; }
+    .header-left .label { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); margin-bottom: 0.2rem; }
+    .header-left h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; }
+    .date-badge { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.75rem; color: var(--muted); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.35rem; animation: fadeUp 0.6s ease 0.1s both; }
+    .tab { flex: 1; padding: 0.6rem; border: none; background: none; color: var(--muted); font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 500; border-radius: 7px; cursor: pointer; transition: all 0.2s; }
+    .tab.active { background: var(--green); color: #000; font-weight: 600; }
+
+    /* Panel */
+    .panel { display: none; } .panel.active { display: block; }
+
+    /* Stats grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; animation: fadeUp 0.6s ease 0.15s both; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; position: relative; overflow: hidden; }
+    .stat-card::before { content: ''; position: absolute; inset: 0; opacity: 0.06; }
+    .stat-card.green::before { background: var(--green); }
+    .stat-card.orange::before { background: var(--orange); }
+    .stat-card.blue::before { background: var(--blue); }
+    .stat-card.purple::before { background: var(--purple); }
+    .stat-icon { font-size: 1.4rem; margin-bottom: 0.6rem; }
+    .stat-val { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; line-height: 1; margin-bottom: 0.2rem; }
+    .stat-card.green .stat-val { color: var(--green); }
+    .stat-card.orange .stat-val { color: var(--orange); }
+    .stat-card.blue .stat-val { color: var(--blue); }
+    .stat-card.purple .stat-val { color: var(--purple); }
+    .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* Progress bars */
+    .goals-section { margin-bottom: 2rem; animation: fadeUp 0.6s ease 0.2s both; }
+    .section-label { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.7rem; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .goal-item { margin-bottom: 1rem; }
+    .goal-row { display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.82rem; }
+    .goal-name { font-weight: 500; }
+    .goal-nums { color: var(--muted); font-size: 0.78rem; }
+    .bar-track { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+    .bar-fill.green { background: var(--green); }
+    .bar-fill.orange { background: var(--orange); }
+    .bar-fill.blue { background: var(--blue); }
+
+    /* Weekly chart */
+    .chart-section { margin-bottom: 2rem; animation: fadeUp 0.6s ease 0.25s both; }
+    .chart-bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 100px; padding: 0 0.2rem; }
+    .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+    .chart-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.5s ease; min-height: 4px; }
+    .chart-bar.green { background: var(--green); opacity: 0.7; }
+    .chart-bar.today { opacity: 1 !important; }
+    .chart-day { font-size: 0.65rem; color: var(--muted); }
+
+    /* Log list */
+    .log-list { display: flex; flex-direction: column; gap: 0.7rem; animation: fadeUp 0.6s ease 0.3s both; }
+    .log-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; display: flex; align-items: center; gap: 1rem; }
+    .log-emoji { font-size: 1.4rem; flex-shrink: 0; }
+    .log-info { flex: 1; min-width: 0; }
+    .log-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.15rem; }
+    .log-meta { font-size: 0.75rem; color: var(--muted); }
+    .log-cal { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; color: var(--orange); flex-shrink: 0; }
+    .btn-del { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 0.3rem 0.5rem; font-size: 0.7rem; cursor: pointer; flex-shrink: 0; transition: all 0.2s; }
+    .btn-del:hover { border-color: #c0392b; color: #e74c3c; }
+
+    /* Add form */
+    .add-form { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; animation: fadeUp 0.6s ease 0.1s both; }
+    .add-form h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 1.2rem; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.35rem; }
+    .form-group input, .form-group select { width: 100%; background: var(--bg); border: 1.5px solid var(--border); border-radius: 7px; padding: 0.65rem 0.9rem; font-family: 'Space Grotesk', sans-serif; font-size: 0.88rem; color: var(--text); transition: border-color 0.2s; }
+    .form-group select option { background: var(--bg); }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--green); }
+    .btn-add { width: 100%; background: var(--green); color: #000; border: none; border-radius: 8px; padding: 0.85rem; font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s; letter-spacing: 0.05em; }
+    .btn-add:hover { opacity: 0.88; }
+    .btn-add:active { transform: scale(0.98); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #000; padding: 0.65rem 1.5rem; border-radius: 99px; font-size: 0.82rem; font-weight: 600; opacity: 0; transition: all 0.3s ease; z-index: 99; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 0.9rem; }
+    .empty-state .emoji { font-size: 2.5rem; display: block; margin-bottom: 0.8rem; }
+
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="header-left">
+      <p class="label">Daily Tracking</p>
+      <h1>Fitness Tracker 💪</h1>
+    </div>
+    <div class="date-badge" id="dateBadge"></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('log')">➕ Log Activity</button>
+    <button class="tab" onclick="switchTab('history')">📋 History</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card green">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-val" id="statCal">0</div>
+        <div class="stat-label">Calories Burned</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-icon">⏱</div>
+        <div class="stat-val" id="statTime">0<span style="font-size:1rem">min</span></div>
+        <div class="stat-label">Workout Time</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-icon">🏃</div>
+        <div class="stat-val" id="statWorkouts">0</div>
+        <div class="stat-label">Workouts Today</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">📅</div>
+        <div class="stat-val" id="statStreak">0</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+    </div>
+
+    <div class="goals-section">
+      <p class="section-label">Daily Goals</p>
+      <div class="goal-item">
+        <div class="goal-row"><span class="goal-name">🔥 Calories</span><span class="goal-nums" id="goalCalNums">0 / 500</span></div>
+        <div class="bar-track"><div class="bar-fill orange" id="goalCalBar" style="width:0%"></div></div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-row"><span class="goal-name">⏱ Workout Time</span><span class="goal-nums" id="goalTimeNums">0 / 60 min</span></div>
+        <div class="bar-track"><div class="bar-fill green" id="goalTimeBar" style="width:0%"></div></div>
+      </div>
+      <div class="goal-item">
+        <div class="goal-row"><span class="goal-name">🏋️ Workouts</span><span class="goal-nums" id="goalWNums">0 / 3</span></div>
+        <div class="bar-track"><div class="bar-fill blue" id="goalWBar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <p class="section-label">Weekly Calories</p>
+      <div class="chart-bars" id="weeklyChart"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="panel" id="panel-log">
+    <div class="add-form">
+      <h3>➕ Log New Activity</h3>
+      <div class="form-grid">
+        <div class="form-group" style="grid-column: 1/-1">
+          <label>Exercise Type</label>
+          <select id="exType">
+            <option value="🏃 Running">🏃 Running</option>
+            <option value="🚴 Cycling">🚴 Cycling</option>
+            <option value="🏊 Swimming">🏊 Swimming</option>
+            <option value="🏋️ Weight Training">🏋️ Weight Training</option>
+            <option value="🧘 Yoga">🧘 Yoga</option>
+            <option value="🤸 HIIT">🤸 HIIT</option>
+            <option value="🚶 Walking">🚶 Walking</option>
+            <option value="⚽ Sport">⚽ Sport</option>
+            <option value="🥊 Boxing">🥊 Boxing</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Duration (min)</label>
+          <input type="number" id="exDuration" placeholder="e.g. 30" min="1" max="300"/>
+        </div>
+        <div class="form-group">
+          <label>Calories Burned</label>
+          <input type="number" id="exCal" placeholder="e.g. 250" min="1" max="2000"/>
+        </div>
+        <div class="form-group" style="grid-column: 1/-1">
+          <label>Notes (optional)</label>
+          <input type="text" id="exNotes" placeholder="e.g. Morning run in the park"/>
+        </div>
+      </div>
+      <button class="btn-add" onclick="logActivity()">LOG ACTIVITY</button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="panel" id="panel-history">
+    <div class="log-list" id="logList">
+      <div class="empty-state"><span class="emoji">🏁</span>No activities logged yet.<br>Go to "Log Activity" to get started!</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let activities = JSON.parse(localStorage.getItem('ft_activities') || '[]');
+
+  // Set date
+  document.getElementById('dateBadge').textContent = new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+
+  function save() { localStorage.setItem('ft_activities', JSON.stringify(activities)); }
+
+  function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+  function getTodayActivities() {
+    return activities.filter(a => a.date === todayStr());
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => {
+      const tabs = ['dashboard','log','history'];
+      t.classList.toggle('active', tabs[i] === tab);
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    if (tab === 'dashboard') renderDashboard();
+    if (tab === 'history') renderHistory();
+  }
+
+  function logActivity() {
+    const type     = document.getElementById('exType').value;
+    const duration = parseInt(document.getElementById('exDuration').value);
+    const cal      = parseInt(document.getElementById('exCal').value);
+    const notes    = document.getElementById('exNotes').value.trim();
+
+    if (!duration || !cal) { showToast('⚠️ Please fill duration and calories'); return; }
+
+    activities.unshift({ id: Date.now(), type, duration, cal, notes, date: todayStr(), time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
+    save();
+
+    document.getElementById('exDuration').value = '';
+    document.getElementById('exCal').value = '';
+    document.getElementById('exNotes').value = '';
+
+    showToast('✅ Activity logged!');
+    setTimeout(() => switchTab('dashboard'), 800);
+  }
+
+  function deleteActivity(id) {
+    if (!confirm('Delete this activity?')) return;
+    activities = activities.filter(a => a.id !== id);
+    save();
+    renderHistory();
+    showToast('🗑 Deleted');
+  }
+
+  function renderDashboard() {
+    const today = getTodayActivities();
+    const totalCal  = today.reduce((s,a) => s + a.cal, 0);
+    const totalTime = today.reduce((s,a) => s + a.duration, 0);
+
+    document.getElementById('statCal').textContent      = totalCal;
+    document.getElementById('statTime').innerHTML       = `${totalTime}<span style="font-size:1rem">min</span>`;
+    document.getElementById('statWorkouts').textContent = today.length;
+
+    // Streak
+    let streak = 0, d = new Date();
+    while (true) {
+      const ds = d.toISOString().split('T')[0];
+      if (activities.some(a => a.date === ds)) { streak++; d.setDate(d.getDate()-1); }
+      else break;
+    }
+    document.getElementById('statStreak').textContent = streak;
+
+    // Goals
+    const pCal  = Math.min(100, (totalCal / 500) * 100);
+    const pTime = Math.min(100, (totalTime / 60) * 100);
+    const pW    = Math.min(100, (today.length / 3) * 100);
+    document.getElementById('goalCalBar').style.width  = pCal + '%';
+    document.getElementById('goalTimeBar').style.width = pTime + '%';
+    document.getElementById('goalWBar').style.width    = pW + '%';
+    document.getElementById('goalCalNums').textContent  = `${totalCal} / 500`;
+    document.getElementById('goalTimeNums').textContent = `${totalTime} / 60 min`;
+    document.getElementById('goalWNums').textContent    = `${today.length} / 3`;
+
+    // Weekly chart
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const now = new Date();
+    let weekData = [];
+    for (let i = 6; i >= 0; i--) {
+      const d2 = new Date(now); d2.setDate(now.getDate() - i);
+      const ds = d2.toISOString().split('T')[0];
+      const cal2 = activities.filter(a => a.date === ds).reduce((s,a) => s + a.cal, 0);
+      weekData.push({ day: days[d2.getDay()], cal: cal2, isToday: i === 0 });
+    }
+    const maxCal = Math.max(...weekData.map(w => w.cal), 1);
+    document.getElementById('weeklyChart').innerHTML = weekData.map(w => `
+      <div class="chart-col">
+        <div class="chart-bar green ${w.isToday ? 'today' : ''}" style="height:${Math.max(4,(w.cal/maxCal)*90)}px"></div>
+        <div class="chart-day" style="${w.isToday ? 'color:var(--green);font-weight:600' : ''}">${w.day}</div>
+      </div>`).join('');
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('logList');
+    if (activities.length === 0) {
+      list.innerHTML = '<div class="empty-state"><span class="emoji">🏁</span>No activities logged yet.<br>Go to "Log Activity" to get started!</div>';
+      return;
+    }
+    list.innerHTML = activities.map(a => `
+      <div class="log-item">
+        <div class="log-emoji">${a.type.split(' ')[0]}</div>
+        <div class="log-info">
+          <div class="log-name">${a.type.split(' ').slice(1).join(' ')}</div>
+          <div class="log-meta">${a.duration} min · ${a.date} ${a.time}${a.notes ? ' · ' + a.notes : ''}</div>
+        </div>
+        <div class="log-cal">${a.cal} kcal</div>
+        <button class="btn-del" onclick="deleteActivity(${a.id})">🗑</button>
+      </div>`).join('');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  renderDashboard();
+</script>
+</body>
+</html>
